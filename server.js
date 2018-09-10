@@ -1,57 +1,17 @@
-const http = require('http');
 const path = require('path');
-const send = require('koa-send');
-const Koa = require('koa');
-const minimatch = require('minimatch');
-const websocket = require('ws');
-const chokidar = require('chokidar');
+const commander = require('commander');
+const buildServer = require('./src/buildServer');
 
-const buildServer = ({rootPath, port = 3020, useWebsocket = false}) => {
-  const app = new Koa();
+commander.version('0.1.0')
+  .usage('[options] <rootpath>')
+  .option('-p, --port [port]', 'Set the server port', 3020)
+  .option('-s --websocket', 'Use the websocket broadcaster')
+  .option('-f --forwardport', 'The forwarding port for the mask middleware', 3040)
+  .parse(process.argv);
 
-  const sendOpts = {root: rootPath};
-  app.use(async (ctx) => {
-    if (minimatch(ctx.path, '**/*.?(css|js|png|jpg|ttf)')) {
-      await send(ctx, ctx.path, sendOpts);
-    }
-    else {
-      await send(ctx, 'home.html', sendOpts);
-    }
-  });
+const rootPath = commander.args[0] ? path.join(__dirname, commander.args[0]) : null;
+const port = commander.port;
+const useWebsocket = commander.websocket;
+const forwardPort = commander.forwardport;
 
-  const server = http.createServer(app.callback()).listen(port);
-// app.listen(port);
-  console.log(`listening on port ${port}`);
-  console.log('serving files from: ', sendOpts.root);
-
-  if (useWebsocket) {
-    console.log('setting up websocket broadcaster');
-
-    const wsServer = new websocket.Server({server});
-
-    wsServer.on('connection', () => console.log('client connected'));
-    wsServer.on('error', err => {
-      console.log('WSSERVER: ', err);
-      if (err.code === 'ECONNREFUSED') {
-        console.log('reconnecting');
-        wsServer.reconnect(err);
-      } else {
-        console.error('Unrecoverable websocket error: ', err);
-      }
-    });
-
-    const onSourceDirChanged = () => wsServer.clients.forEach(socket => {
-      if (socket.readyState === websocket.OPEN) {
-        socket.send('source-changed', err => {
-          err ? console.err('There was a websocket error') : console.log('"source-changed" broadcasted');
-        })
-      }
-    });
-
-    const watcher = chokidar.watch(rootPath, {persistent: true});
-    watcher.on('change', onSourceDirChanged);
-  }
-  return server;
-};
-
-module.exports = buildServer;
+buildServer({rootPath, port, useWebsocket, forwardPort});
