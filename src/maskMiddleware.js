@@ -29,27 +29,6 @@ module.exports = ({forwardPort = 3040} = {}) => {
     const mask = [...routeMasks].reverse().find(routeMask => routeMask.path === ctx.path && routeMask.method === ctx.method);
     console.log('MASK: ', mask);
 
-    // const fetchConfig = {
-    //   ...{
-    //     method: ctx.method,
-    //     headers: ctx.headers,
-    //   }, ...(Object.keys(ctx.request.body).length > 0 ? {body: JSON.stringify(ctx.request.body)} : {})
-    // };
-    // console.log('FCONFIG: ', fetchConfig);
-    // const rawResponse = await fetch(
-    //   `http://localhost:${forwardPort}${ctx.originalUrl}`,
-    //   fetchConfig
-    // );
-
-    // ctx.status = rawResponse.status;
-    // rawResponse.headers.forEach(((headerValue, headerField) => {
-    //   ctx.set(headerField, headerValue);
-    // }));
-    //
-    // const forwardedJSON = await rawResponse.json();
-    // console.log("FWD JSON: ", forwardedJSON);
-    //
-    // ctx.body = mask ? applyMask(forwardedJSON, mask.responseMask) : forwardedJSON;
     const reqOptions = {
       url: `http://localhost:${forwardPort}${ctx.originalUrl}`,
       headers: ctx.headers
