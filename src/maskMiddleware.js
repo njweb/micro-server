@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const request = require('request');
 
 const queryKeyActive = ({ctx, queryKey}) => ctx.query[queryKey] !== undefined && ctx.query[queryKey] !== false;
 
@@ -29,28 +29,52 @@ module.exports = ({forwardPort = 3040} = {}) => {
     const mask = [...routeMasks].reverse().find(routeMask => routeMask.path === ctx.path && routeMask.method === ctx.method);
     console.log('MASK: ', mask);
 
-    const fetchConfig = {
-      ...{
-        method: ctx.method,
-        headers: ctx.headers,
-      }, ...(Object.keys(ctx.request.body).length > 0 ? {body: JSON.stringify(ctx.request.body)} : {})
+    // const fetchConfig = {
+    //   ...{
+    //     method: ctx.method,
+    //     headers: ctx.headers,
+    //   }, ...(Object.keys(ctx.request.body).length > 0 ? {body: JSON.stringify(ctx.request.body)} : {})
+    // };
+    // console.log('FCONFIG: ', fetchConfig);
+    // const rawResponse = await fetch(
+    //   `http://localhost:${forwardPort}${ctx.originalUrl}`,
+    //   fetchConfig
+    // );
+
+    // ctx.status = rawResponse.status;
+    // rawResponse.headers.forEach(((headerValue, headerField) => {
+    //   ctx.set(headerField, headerValue);
+    // }));
+    //
+    // const forwardedJSON = await rawResponse.json();
+    // console.log("FWD JSON: ", forwardedJSON);
+    //
+    // ctx.body = mask ? applyMask(forwardedJSON, mask.responseMask) : forwardedJSON;
+    const reqOptions = {
+      url: `http://localhost:${forwardPort}${ctx.originalUrl}`,
+      headers: ctx.headers
     };
-    console.log('FCONFIG: ', fetchConfig);
-    const rawResponse = await fetch(
-      `http://localhost:${forwardPort}${ctx.originalUrl}`,
-      fetchConfig
-    );
 
-    ctx.status = rawResponse.status;
-    rawResponse.headers.forEach(((headerValue, headerField) => {
-      ctx.set(headerField, headerValue);
-    }));
-
-    const forwardedJSON = await rawResponse.json();
-    console.log("FWD JSON: ", forwardedJSON);
-
-    ctx.body = mask ? applyMask(forwardedJSON, mask.responseMask) : forwardedJSON;
-
+    await new Promise((res, rej) => {
+      const callback = (err, response, body) => {
+        if (err) {
+          rej(err);
+        } else {
+          ctx.status = response && response.statusCode;
+          Object.entries(response.headers).forEach(([key, value]) => {
+            ctx.set(key, value);
+          });
+          try {
+            const jsonBody = JSON.parse(body);
+            ctx.body = mask ? applyMask(jsonBody, mask.responseMask) : jsonBody;
+          } catch (e) {
+            ctx.body = body;
+          }
+          res();
+        }
+      };
+      request(reqOptions, callback);
+    });
     return ctx;
   };
   const editMasks = ({ctx}) => {
@@ -64,6 +88,7 @@ module.exports = ({forwardPort = 3040} = {}) => {
       ctx.body = {maskCount: routeMasks.length};
       return;
     }
+    console.log("MASK: ", ctx.request.body);
 
     const newMask = {
       path: ctx.path.substring(ctx.path.indexOf('_mask') + '_mask'.length),
