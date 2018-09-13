@@ -8,15 +8,20 @@ const buildServer = ({rootPath, port = 3020, forwardPort = 3040, useWebsocket = 
   const app = new Koa();
 
   if (rootPath) {
-    app.use(staticFileMiddleware({rootPath, useWebsocket, koaApp: app}));
+    app.use(staticFileMiddleware({rootPath}));
     console.log('serving files from: ', rootPath);
   } else {
     app.use(KoaBody());
     app.use(maskMiddleware({forwardPort}));
   }
 
-  app.listen(port);
+  const server = http.createServer(koaApp.callback()).listen(port);
   console.log(`listening on port ${port}`);
+
+  if (useWebsocket) {
+    websocketBroadcaster({rootPath, server});
+  }
+
   return app;
 };
 
