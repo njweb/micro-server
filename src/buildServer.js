@@ -15,7 +15,7 @@ const buildServer = ({rootPath, port = 3020, forwardPort = 3040, useWebsocket = 
     app.use(maskMiddleware({forwardPort}));
   }
 
-  const server = http.createServer(koaApp.callback()).listen(port);
+  const server = http.createServer(app.callback()).listen(port);
   console.log(`listening on port ${port}`);
 
   if (useWebsocket) {
