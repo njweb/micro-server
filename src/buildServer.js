@@ -1,26 +1,15 @@
 const http = require('http');
-const Koa = require('koa');
-const KoaBody = require('koa-body');
-const staticFileMiddleware = require('./staticFileMiddleware');
+const express = require('express');
 const maskMiddleware = require('./maskMiddleware');
+const forwardMiddleware = require('./forwardMiddleware');
 
-const buildServer = ({rootPath, port = 3020, forwardPort = 3040, useWebsocket = false}) => {
-  const app = new Koa();
+const buildServer = ({port = 3020, forwardPort = 3040} = {}) => {
+  const app = express();
+  app.use(maskMiddleware());
+  app.use(forwardMiddleware({ forwardPort }));
+  // app.get('/*', (req, res) => res.send("HI"));
 
-  if (rootPath) {
-    app.use(staticFileMiddleware({rootPath}));
-    console.log('serving files from: ', rootPath);
-  } else {
-    app.use(KoaBody());
-    app.use(maskMiddleware({forwardPort}));
-  }
-
-  const server = http.createServer(app.callback()).listen(port);
-  console.log(`listening on port ${port}`);
-
-  if (useWebsocket) {
-    websocketBroadcaster({rootPath, server});
-  }
+  app.listen(port, () => console.log(`Mask server listening on port ${port}`));
 
   return app;
 };

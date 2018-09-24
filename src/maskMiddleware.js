@@ -1,91 +1,64 @@
-const request = require('request');
+const bodyParser = require('body-parser');
 
-const queryKeyActive = ({ctx, queryKey}) => ctx.query[queryKey] !== undefined && ctx.query[queryKey] !== false;
+const isReqMask = req => Object.keys(req.query).includes('$mask');
+const getStatusMaskFromReq = req => (
+  (value => Number.isInteger(value) ? value : null)(req.query['$status'])
+);
+const getMethodMaskFromReq = req => (
+  Object.keys(req.query).includes('$method') ? req.query['$method'].toUpperCase() : 'GET'
+);
+const getShouldMaskOverrideFromReq = req => (
+  Object.keys(req.query).includes('$override')
+);
+const getMaskKeyFromReq = req => `${getMethodMaskFromReq(req)}|>${req.path}`;
+const getTail = arr => arr && arr[arr.length - 1];
 
-const applyMask = (source, mask) => {
-  if (!mask) return source;
-  if (typeof source !== 'object' || typeof mask !== 'object') return mask;
+const maskMiddleware = () => {
+  const masks = {};
+  const jsonParser = bodyParser.json();
 
-  if (!Array.isArray(source)) {
-    const maskedSource = Object.entries(mask).reduce((acc, [key, value]) => ({
-      ...source,
-      [key]: applyMask(source[key], value)
-    }), source);
-    return {...mask, ...maskedSource};
-  } else if (!Array.isArray(mask)) {
-    return source.map(item => applyMask(item, mask));
-  } else {
-    return source.map((item, index) => {
-      const maskWithIndex = mask.find(maskItem => maskItem[0] === index);
-      return maskWithIndex ? applyMask(item, maskWithIndex[1]) : item;
-    })
-  }
-};
+  return [
+    (req, res, next) => {
+      if(isReqMask(req)) return jsonParser(req, res, next);
+      else return next();
+    },
+    (req, res, next) => {
+      if(isReqMask(req)) {
+        const maskKey = getMaskKeyFromReq(req); 
+        const maskStack = masks[maskKey] || [];
+        maskStack.push({ 
+          bodyMask: req.body || {}, 
+          statusMask: getStatusMaskFromReq(req),
+          override: getShouldMaskOverrideFromReq(req)
+        });
+        masks[maskKey] = maskStack;
 
-module.exports = ({forwardPort = 3040} = {}) => {
-  let routeMasks = [];
-  const forwardRequest = async ({ctx}) => {
-    console.log('FORWARD: ', JSON.stringify(ctx.path));
-    const mask = [...routeMasks].reverse().find(routeMask => routeMask.path === ctx.path && routeMask.method === ctx.method);
-    console.log('MASK: ', mask);
-
-    const reqOptions = {
-      url: `http://localhost:${forwardPort}${ctx.originalUrl}`,
-      headers: ctx.headers
-    };
-
-    await new Promise((res, rej) => {
-      const callback = (err, response, body) => {
-        if (err) {
-          rej(err);
+        res.json(`MASK: ${JSON.stringify(masks)}`);
+      } else {
+        console.log('METHOD: ', req.method);
+        const maskKey = getMaskKeyFromReq(req);
+        const mask  = getTail(masks[maskKey]);
+        if(mask.override) {
+          res.json(mask.bodyMask);
         } else {
-          ctx.status = response && response.statusCode;
-          Object.entries(response.headers).forEach(([key, value]) => {
-            ctx.set(key, value);
-          });
-          try {
-            const jsonBody = JSON.parse(body);
-            ctx.body = mask ? applyMask(jsonBody, mask.responseMask) : jsonBody;
-          } catch (e) {
-            ctx.body = body;
-          }
-          res();
+          res.locals.mask = mask;
+          next();
         }
-      };
-      request(reqOptions, callback);
-    });
-    return ctx;
-  };
-  const editMasks = ({ctx}) => {
-    if (queryKeyActive({ctx, queryKey: 'pop'})) {
-      routeMasks.pop();
-      ctx.body = {maskCount: routeMasks.length};
-      return;
+      }
     }
-    if (queryKeyActive({ctx, queryKey: 'clear'})) {
-      routeMasks = [];
-      ctx.body = {maskCount: routeMasks.length};
-      return;
+  ];
+  return (req, res, next) => {
+    if(Object.keys(req.query).includes('$mask')) {
+      bodyParser.json()(req, res, (req, res) => {
+        masks[req.path] = req.body || '';
+        console.log('MASKS: ', masks);
+        res.json(`MASK: ${JSON.stringify(masks)}`);
+      });
+    } else {
+      res.locals.mask = masks[req.path];
+      next();
     }
-    console.log("MASK: ", ctx.request.body);
-
-    const newMask = {
-      path: ctx.path.substring(ctx.path.indexOf('_mask') + '_mask'.length),
-      status: (value => !isNaN(value) ? value : null)(parseInt(ctx.query.status)),
-      method: ctx.query.method || 'GET',
-      responseMask: ctx.request.body,
-      replace: ctx.query.replace !== undefined && ctx.query.replace !== false
-    };
-
-    routeMasks = [...routeMasks, newMask];
-    ctx.body = newMask;
   };
-  return async (ctx, next) => {
-    const urlSegments = ctx.path.split('/');
+}
 
-    await urlSegments[1] === '_mask' ?
-      editMasks({ctx}) :
-      await forwardRequest({ctx});
-    return await next();
-  }
-};
+module.exports = maskMiddleware;
