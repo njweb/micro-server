@@ -33,12 +33,13 @@ const maskMiddleware = () => {
         });
         masks[maskKey] = maskStack;
 
-        res.json(`MASK: ${JSON.stringify(masks)}`);
+        res.json(masks);
       } else {
         console.log('METHOD: ', req.method);
-        const maskKey = getMaskKeyFromReq(req);
+        const maskKey = `${req.method}|>${req.path}`
         const mask  = getTail(masks[maskKey]);
-        if(mask.override) {
+        console.log('MASK KEY: ', maskKey);
+        if(mask && mask.override) {
           res.json(mask.bodyMask);
         } else {
           res.locals.mask = mask;
@@ -47,18 +48,18 @@ const maskMiddleware = () => {
       }
     }
   ];
-  return (req, res, next) => {
-    if(Object.keys(req.query).includes('$mask')) {
-      bodyParser.json()(req, res, (req, res) => {
-        masks[req.path] = req.body || '';
-        console.log('MASKS: ', masks);
-        res.json(`MASK: ${JSON.stringify(masks)}`);
-      });
-    } else {
-      res.locals.mask = masks[req.path];
-      next();
-    }
-  };
+  //  return (req, res, next) => {
+  //    if(Object.keys(req.query).includes('$mask')) {
+  //      bodyParser.json()(req, res, (req, res) => {
+  //        masks[req.path] = req.body || '';
+  //        console.log('MASKS: ', masks);
+  //        res.json(`MASK: ${JSON.stringify(masks)}`);
+  //      });
+  //    } else {
+  //      res.locals.mask = masks[req.path];
+  //      next();
+  //    }
+  //  };
 }
 
 module.exports = maskMiddleware;
