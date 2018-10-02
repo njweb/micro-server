@@ -1,0 +1,13 @@
+{
+    "/users": {
+        "method": "POST",
+        "status": 400,
+        "mask": {
+            "errors" : {
+                "field": "name",
+                "message": "This is incorrect"
+            }
+        },
+        "override": true
+    }
+}

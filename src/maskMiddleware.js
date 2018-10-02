@@ -1,6 +1,17 @@
 const bodyParser = require('body-parser');
+const fs = require('mz/fs');
 
-const isReqMask = req => Object.keys(req.query).includes('$mask');
+const readMaskConfigurationFile = async filepath => {
+  return fs.readFile(filepath, {encoding: 'utf-8'})
+    .then(contents => {
+      const masks = JSON.parse(contents);
+      return Object.entries(JSON.parse(contents)).reduce((maskAcc, [path, config]) => {
+        const { method = 'GET' } = config;
+        return {...maskAcc, [`${method}|>${path}`]: config};
+      }, {});
+    });
+};
+const isReqMask = req => req.path.startsWith('/_mask');
 const getStatusMaskFromReq = req => (
   (value => Number.isInteger(value) ? value : null)(req.query['$status'])
 );
@@ -13,9 +24,13 @@ const getShouldMaskOverrideFromReq = req => (
 const getMaskKeyFromReq = req => `${getMethodMaskFromReq(req)}|>${req.path}`;
 const getTail = arr => arr && arr[arr.length - 1];
 
-const maskMiddleware = () => {
-  const masks = {};
+const maskMiddleware = ({filepath} = {}) => {
+  let masks = {};
   const jsonParser = bodyParser.json();
+
+  readMaskConfigurationFile('../maskConfig.json').then(maskConfig => {
+    masks = maskConfig;
+  });
 
   return [
     (req, res, next) => {
@@ -24,14 +39,14 @@ const maskMiddleware = () => {
     },
     (req, res, next) => {
       if(isReqMask(req)) {
-        const maskKey = getMaskKeyFromReq(req); 
-        const maskStack = masks[maskKey] || [];
-        maskStack.push({ 
-          bodyMask: req.body || {}, 
-          statusMask: getStatusMaskFromReq(req),
-          override: getShouldMaskOverrideFromReq(req)
-        });
-        masks[maskKey] = maskStack;
+        //const maskKey = getMaskKeyFromReq(req); 
+        //const maskStack = masks[maskKey] || [];
+        //maskStack.push({ 
+        //  bodyMask: req.body || {}, 
+        //  statusMask: getStatusMaskFromReq(req),
+        //  override: getShouldMaskOverrideFromReq(req)
+        //});
+        //masks[maskKey] = maskStack;
 
         res.json(masks);
       } else {
