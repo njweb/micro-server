@@ -1,13 +1,32 @@
 {
-    "/users": {
-        "method": "POST",
-        "status": 400,
+    "POST/users": {
         "mask": {
-            "errors" : {
-                "field": "name",
-                "message": "This is incorrect"
-            }
+            "errors": [
+                {
+                    "field": "name",
+                    "message": "say something"
+                }
+            ]
         },
         "override": true
+    },
+    "GET/logins": {
+        "mask": {
+            "body": {
+                "username": "George"
+            }
+        }
+    },
+    "GET/api/users": {
+        "mask": {
+            "users":[
+                [
+                    2,
+                    {
+                        "name": "NAME HERE"
+                    }
+                ]
+            ]
+        }
     }
 }

@@ -11,17 +11,25 @@ const responseHasContent = res => (
 
 const forwardMiddleware = ({ forwardPort }) => (req, res) => {
   const callback = (err, proxyResponse, body) => {
-    proxyResponse.pipe(res);
+    if(err) {
+      res.status(500).end(err.toString());
+      return;
+    }
+
     res.set(proxyResponse.headers);
-    
     if(responseHasContent(proxyResponse) && responseIsJson(proxyResponse)) {
-      console.log('ROUTE MASK: ', res.locals.mask);
+      const proxyConfig = res.locals.proxyConfig;
+      console.log('PATH: ', req.path);
+      console.log('BODY MASK ACTIVE: ', !!proxyConfig);
+      console.log(`BODY: ${body.substring(0, 20)} \n`);
       const parsedBody = JSON.parse(body);
-      console.log('BODY ', body.substring(0, 20));
-      const maskedBody = res.locals.mask ? applyMask(parsedBody, res.locals.mask.bodyMask) : parsedBody;
-      console.log('MASKED ', maskedBody);
-      res.status(proxyResponse.statusCode).json(maskedBody);
+      const statusCode = proxyConfig.status || proxyResponse.statusCode;
+      const maskedBody = proxyConfig.mask ?
+        applyMask(parsedBody, proxyConfig.mask) : parsedBody;
+
+      res.status(statusCode).json(maskedBody);
     } else {
+      console.log(`PASSTHROUGH: ${req.path} \n`);
       res.status(proxyResponse.statusCode).end(body);
     }
   };
