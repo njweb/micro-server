@@ -3,6 +3,7 @@ const Koa = require('koa');
 const KoaBody = require('koa-body');
 const staticFileMiddleware = require('./staticFileMiddleware');
 const maskMiddleware = require('./maskMiddleware');
+const websocketBroadcaster = require('./websocketBroadcaster');
 
 const buildServer = ({rootPath, port = 3020, forwardPort = 3040, useWebsocket = false}) => {
   const app = new Koa();
