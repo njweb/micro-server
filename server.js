@@ -9,7 +9,7 @@ commander.version('0.1.0')
   .option('-s --websocket', 'Use the websocket broadcaster')
   .parse(process.argv);
 
-const rootPath = commander.args[0] ? path.join(__dirname, commander.args[0]) : null;
+const rootPath = commander.args[0] ? path.resolve(__dirname, commander.args[0]) : null;
 const port = commander.port;
 const forwardPort = commander.forwardport;
 const useWebsocket = commander.websocket;
