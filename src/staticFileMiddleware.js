@@ -6,7 +6,10 @@ const websocket = require('ws');
 const chokidar = require('chokidar');
 
 module.exports = ({rootPath}) => {
-  const sendOpts = {root: rootPath};
+  const sendOpts = {
+    root: rootPath,
+    maxage: 1000,
+  };
 
   return async (ctx, next) => {
     if (minimatch(ctx.path, '**/*.?(html|htm|css|js|map|png|jpg|ttf)')) {
