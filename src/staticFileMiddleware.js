@@ -12,7 +12,7 @@ module.exports = ({rootPath}) => {
   };
 
   return async (ctx, next) => {
-    if (minimatch(ctx.path, '**/*.?(html|htm|css|js|map|png|jpg|ttf)')) {
+    if (minimatch(ctx.path, '**/*.?(html|htm|css|js|json|map|png|jpg|ttf)')) {
       await send(ctx, ctx.path, sendOpts);
     }
     else {
