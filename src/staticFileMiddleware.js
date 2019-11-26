@@ -12,10 +12,12 @@ module.exports = ({rootPath}) => {
   };
 
   return async (ctx, next) => {
-    if (minimatch(ctx.path, '**/*.?(html|htm|css|js|json|map|png|jpg|ttf)')) {
+    console.log('path ', ctx.path);
+    if (minimatch(ctx.path, '**/*.?(css|js|json|map|png|jpg|ttf)')) {
       await send(ctx, ctx.path, sendOpts);
-    }
-    else {
+    } else if (minimatch(`${ctx.path}.html`, '**/*.html')) {
+      await send(ctx, `${ctx.path}.html`, sendOpts);
+    } else if (ctx.path === '/') {
       await send(ctx, 'home.html', sendOpts);
     }
     return await next();
