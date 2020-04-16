@@ -17,7 +17,7 @@ module.exports = ({ rootPath, serveHtml }) => {
       await send(ctx, ctx.path, sendOpts);
     } else if (serveHtml && minimatch(`${ctx.path}.html`, '**/*.html')) {
       await send(ctx, `${ctx.path}.html`, sendOpts);
-    } else if (!AUTO_SERVE_HTML || ctx.path === '/') {
+    } else if (!ctx.path.match(/[^\/]+\.[^\/]*$/)) {
       await send(ctx, 'home.html', sendOpts);
     }
     return await next();
