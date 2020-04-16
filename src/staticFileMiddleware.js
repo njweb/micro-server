@@ -5,7 +5,7 @@ const minimatch = require('minimatch');
 const websocket = require('ws');
 const chokidar = require('chokidar');
 
-module.exports = ({rootPath}) => {
+module.exports = ({ rootPath, serveHtml }) => {
   const sendOpts = {
     root: rootPath,
     maxage: 1000,
@@ -13,11 +13,11 @@ module.exports = ({rootPath}) => {
 
   return async (ctx, next) => {
     console.log('path ', ctx.path);
-    if (minimatch(ctx.path, '**/*.?(css|js|json|map|png|jpg|ttf|ico)')) {
+    if (minimatch(ctx.path, '**/*.?(html|css|js|json|map|png|jpg|ttf|ico)')) {
       await send(ctx, ctx.path, sendOpts);
-    } else if (minimatch(`${ctx.path}.html`, '**/*.html')) {
+    } else if (serveHtml && minimatch(`${ctx.path}.html`, '**/*.html')) {
       await send(ctx, `${ctx.path}.html`, sendOpts);
-    } else if (ctx.path === '/') {
+    } else if (!AUTO_SERVE_HTML || ctx.path === '/') {
       await send(ctx, 'home.html', sendOpts);
     }
     return await next();
