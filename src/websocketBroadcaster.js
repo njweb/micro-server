@@ -11,7 +11,7 @@ module.exports = ({rootPath, server}) => {
     console.log('WSSERVER: ', err);
     if (err.code === 'ECONNREFUSED') {
       console.log('reconnecting');
-      wsServer.reconnect(err);
+      onTimeout(() => wsServer.reconnect(err), 800);
     } else {
       console.error('Unrecoverable websocket error: ', err);
     }
