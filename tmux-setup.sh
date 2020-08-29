@@ -7,4 +7,4 @@ tmux new -s 'watch' \; \
     split-window -v \; \
     send-keys -t 0 'cd $WATCH_DIR' C-m \; \
     send-keys -t 1 'cd $WATCH_DIR' C-m \; \
-    send-keys -t 2 'node ~/Git/njw/micro-server/server.js -s '$WATCH_DIR \;
+    send-keys -t 2 'node ~/Git/njw/micro-server/server.js -s -h '$WATCH_DIR \;
