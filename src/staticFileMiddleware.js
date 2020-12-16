@@ -13,7 +13,7 @@ module.exports = ({ rootPath, serveHtml }) => {
 
   return async (ctx, next) => {
     console.log('path ', ctx.path);
-    if (minimatch(ctx.path, '**/*.?(html|css|js|json|map|png|jpg|ttf|ico)')) {
+    if (minimatch(ctx.path, '**/*.?(html|css|js|json|map|png|jpg|svg|ttf|ico)')) {
       await send(ctx, ctx.path, sendOpts);
     } else if (serveHtml && minimatch(`${ctx.path}.html`, '**/*.html')) {
       await send(ctx, `${ctx.path}.html`, sendOpts);
