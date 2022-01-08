@@ -1,5 +1,6 @@
 const websocket = require('ws');
 const chokidar = require('chokidar');
+const _ = require('lodash');
 
 module.exports = ({rootPath, server}) => {
   console.log('setting up websocket broadcaster');
@@ -25,8 +26,10 @@ module.exports = ({rootPath, server}) => {
     }
   });
 
+  const handleChangeEvent = _.throttle(onSourceDirChanged, 100, { leading: false });
+
   const watcher = chokidar.watch(rootPath, {persistent: true});
-  watcher.on('change', onSourceDirChanged);
+  watcher.on('change', handleChangeEvent);
 
   return wsServer;
 };
