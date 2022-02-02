@@ -26,7 +26,7 @@ module.exports = ({rootPath, server}) => {
     }
   });
 
-  const handleChangeEvent = _.throttle(onSourceDirChanged, 100, { leading: false });
+  const handleChangeEvent = _.debounce(onSourceDirChanged, 250, { leading: false });
 
   const watcher = chokidar.watch(rootPath, {persistent: true});
   watcher.on('change', handleChangeEvent);
